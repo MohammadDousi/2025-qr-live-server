@@ -1,6 +1,6 @@
 {
-  "name": "live-server-qr",
-  "displayName": "Live Server QR",
+  "name": "qr-live-server",
+  "displayName": "Qr Live Server",
   "icon": "icon.png", 
   "publisher": "mohammad-dousi",
   "description": "Scan a QR Code to open your live server up in your mobile browser.",

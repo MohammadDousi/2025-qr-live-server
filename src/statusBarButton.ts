@@ -7,7 +7,7 @@ export function statusBarButton(): vscode.StatusBarItem {
     100
   );
   statusBarItem.command = "ip-qr-code.run";
-  statusBarItem.text = "Generate IP Qr";
+  statusBarItem.text = "QR Live Server";
   statusBarItem.show();
   return statusBarItem;
 }
