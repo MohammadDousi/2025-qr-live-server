@@ -1,9 +1,9 @@
 {
-  "name": "ip-qr-code",
-  "displayName": "IP QR Code",
+  "name": "live-qr",
+  "displayName": "Live QR",
   "publisher": "mohammad-dousi",
   "description": "Generate QR code for your local IP and port",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
