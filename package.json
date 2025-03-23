@@ -1,10 +1,10 @@
 {
-  "name": "live-qr",
-  "displayName": "Live QR",
+  "name": "live-server-qr",
+  "displayName": "Live Server QR",
   "icon": "icon.png", 
   "publisher": "mohammad-dousi",
-  "description": "Generate QR code for your local IP and port",
-  "version": "0.0.2",
+  "description": "Scan a QR Code to open your live server up in your mobile browser.",
+  "version": "0.0.32",
   "repository": {
     "type": "git",
     "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
