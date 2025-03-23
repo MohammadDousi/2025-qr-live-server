@@ -4,6 +4,10 @@
   "publisher": "mohammad-dousi",
   "description": "Generate QR code for your local IP and port",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
+  },
   "engines": {
     "vscode": "^1.98.0"
   },
@@ -11,7 +15,9 @@
     "Other"
   ],
   "main": "./dist/extension.js",
-  "activationEvents": ["*"],
+  "activationEvents": [
+    "*"
+  ],
   "contributes": {
     "commands": [
       {

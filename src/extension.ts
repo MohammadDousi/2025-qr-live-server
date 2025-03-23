@@ -38,7 +38,7 @@ async function handleQRGeneration() {
   }
 
   try {
-    const qrCode = await qrcode.toDataURL(`${ipAddress}:${port}`, {
+    const qrCode = await qrcode.toDataURL(`http://${ipAddress}:${port}`, {
       width: 400,
       margin: 2,
       scale: 4,
@@ -75,26 +75,35 @@ async function getPort(): Promise<string | undefined> {
   }
 }
 async function findRunningPort(): Promise<string | undefined> {
-  const processes: Process[] = await find("port", /300[0-9]|8[0-9]{3}/);
+  try {
+    // Expanded port range to include more common development ports
+    const processes: Process[] = await find("port", /[1-9][0-9]{3}/);
+    
+    console.log('Found processes:', processes); // Debug log
 
-  if (!processes || processes.length === 0) {
-    vscode.window.showInformationMessage(
-      "No active development ports found. Please enter port manually."
-    );
+    if (!processes || processes.length === 0) {
+      vscode.window.showInformationMessage(
+        "No active development ports found. Please enter port manually."
+      );
+      return undefined;
+    }
+
+    const items: QuickPickItem[] = processes.map((p: Process) => ({
+      label: `Port ${p.port}`,
+      description: `${p.name} (PID: ${p.pid})`,
+      port: p.port.toString(),
+    }));
+
+    const selection = await vscode.window.showQuickPick(items, {
+      placeHolder: "Select a running server port or press ESC to enter manually",
+    });
+
+    return selection?.port;
+  } catch (error) {
+    console.error('Port detection error:', error); // Debug log
+    vscode.window.showErrorMessage(`Failed to detect ports: ${error}`);
     return undefined;
   }
-
-  const items: QuickPickItem[] = processes.map((p: Process) => ({
-    label: `Port ${p.port}`,
-    description: `${p.name} (PID: ${p.pid})`,
-    port: p.port.toString(),
-  }));
-
-  const selection = await vscode.window.showQuickPick(items, {
-    placeHolder: "Select a running server port or press ESC to enter manually",
-  });
-
-  return selection?.port;
 }
 function validatePortNumber(value: string): string | null {
   const portNum = parseInt(value);
