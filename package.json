@@ -1,6 +1,7 @@
 {
   "name": "live-qr",
   "displayName": "Live QR",
+  "icon": "icon.png", 
   "publisher": "mohammad-dousi",
   "description": "Generate QR code for your local IP and port",
   "version": "0.0.2",
