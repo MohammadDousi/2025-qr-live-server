@@ -2,6 +2,8 @@ import * as cp from "child_process";
 import * as utils from "util";
 import vscode from "vscode";
 
+const isWindows = process.platform === "win32" || "win64";
+
 interface QuickPickItem extends vscode.QuickPickItem {
   port: string;
 }
@@ -18,7 +20,6 @@ interface ProcessInfo {
 
 export async function getPort(): Promise<string | undefined> {
   try {
-    const isWindows = (await process.platform) === "win32";
     const command = isWindows
       ? 'netstat -ano | findstr "node"'
       : 'lsof -i -P -n | grep "node"';
@@ -32,16 +33,12 @@ export async function getPort(): Promise<string | undefined> {
       return undefined;
     }
 
-    // Extract port number from the output
-    // Match all port numbers that are in LISTEN state
-
     // Parse output into ProcessInfo objects
     const processes: ProcessInfo[] = await stdout
       .split("\n")
       .filter((line) => line.trim())
       .map((line) => {
         const parts = line.split(/\s+/).filter((part) => part); // Filter out empty strings
-        // For the format: node 68229 mohammad 20u IPv6 *:3000 (LISTEN)
         const addressPart = parts.find((part) => part.includes(":")) || "";
         const port = addressPart ? parseInt(addressPart.split(":")[1]) : 0;
 
@@ -55,13 +52,14 @@ export async function getPort(): Promise<string | undefined> {
           port: port,
           state: parts[parts.length - 1].replace(/[()]/g, ""), // Remove parentheses from state
         };
-      })
-      .filter((proc) => !isNaN(proc.port) && proc.port > 0); // Filter out invalid ports
+      });
+    // .filter((proc) => !isNaN(proc.port) && proc.port > 0); // Filter out invalid ports
     // .filter((proc) => proc.state === "LISTEN");
 
     vscode.window.showErrorMessage(
       "ProcessInfo => " + JSON.stringify(processes)
     );
+
     if (processes.length === 0) {
       vscode.window.showErrorMessage("No active listening ports found");
       return await vscode.window.showInputBox({
@@ -72,7 +70,7 @@ export async function getPort(): Promise<string | undefined> {
     }
 
     // Create QuickPickItems from process information
-    const taskItems: QuickPickItem[] = processes.map((proc) => {
+    const QuickItem: QuickPickItem[] = processes.map((proc) => {
       return {
         label: `Port: ${proc.port}`,
         description: `PID: ${proc.pid} | Program: ${proc.program}`,
@@ -81,15 +79,15 @@ export async function getPort(): Promise<string | undefined> {
       };
     });
 
-    if (taskItems.length === 1) {
+    if (QuickItem.length === 1) {
       // If only one task, ask for confirmation
       const confirmUse = await vscode.window.showQuickPick(["Yes", "No"], {
-        placeHolder: `Use ${taskItems[0].port} from task "${taskItems[0].label}"?`,
+        placeHolder: `Use ${QuickItem[0].port} from task "${QuickItem[0].label}"?`,
       });
-      return confirmUse === "Yes" ? taskItems[0].port : undefined;
+      return confirmUse === "Yes" ? QuickItem[0].port : undefined;
     } else {
       // If multiple tasks, let user choose
-      const selection = await vscode.window.showQuickPick(taskItems, {
+      const selection = await vscode.window.showQuickPick(QuickItem, {
         placeHolder: "Select the port from a running task",
       });
 
@@ -106,6 +104,12 @@ export async function getPort(): Promise<string | undefined> {
     });
   }
 }
+
+// async function getNameProject(params: type) {
+//   const command = isWindows
+//     ? `wmic process where processid=${pid} get executablepath`
+//     : `lsof -p ${pid} | grep -i cwd`;
+// }
 
 function validatePortNumber(value: string): string | null {
   const portNum = parseInt(value);

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { statusBarButton } from "./statusBarButton";
+import { statusBarButton } from "./ui/statusBarButton";
 import { showQRCode } from "./ui/qr";
 import { getLocalIpAddress } from "./utils/localIp";
 import { getPort } from "./utils/getPort";
