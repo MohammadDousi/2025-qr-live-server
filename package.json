@@ -4,7 +4,7 @@
   "icon": "icon.png", 
   "publisher": "mohammad-dousi",
   "description": "Scan a QR Code to open your live server up in your mobile browser.",
-  "version": "0.0.43",
+  "version": "0.0.45",
   "repository": {
     "type": "git",
     "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
