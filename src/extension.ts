@@ -55,23 +55,16 @@ async function handleQRGeneration() {
 /// get running port or get manual port
 async function getPort(): Promise<string | undefined> {
   try {
-    // Find running project ports
-    const activeProjectPorts = await getActiveProjectPorts();
+    // First try to find port from active project
+    const activeProjectPort = await getActiveProjectPort();
+    if (activeProjectPort) {
+      return activeProjectPort;
+    }
 
-    if (activeProjectPorts && activeProjectPorts.length > 0) {
-      // If only one port is found, use it directly
-      if (activeProjectPorts.length === 1) {
-        return activeProjectPorts[0].port;
-      }
-
-      // If multiple ports, let user choose
-      const selection = await vscode.window.showQuickPick(activeProjectPorts, {
-        placeHolder: "Select the port for your active project",
-      });
-
-      if (selection) {
-        return selection.port;
-      }
+    // If no active project port found, try to find from any running process
+    const runningPort = await findRunningPort();
+    if (runningPort) {
+      return runningPort;
     }
 
     return await vscode.window.showInputBox({
@@ -91,229 +84,200 @@ async function getPort(): Promise<string | undefined> {
   }
 }
 
-// This function gets actual running ports from terminals and processes
-async function getActiveProjectPorts(): Promise<QuickPickItem[] | undefined> {
+// New function to get port from active terminal or tasks
+async function getActiveProjectPort(): Promise<string | undefined> {
   try {
-    // First, collect any information from terminals
-    const terminalPorts = await detectTerminalPorts();
-
-    // Next, get information from processes
-    const processPorts = await detectRunningPortsFromProcesses();
-
-    // Combine and deduplicate results
-    const allPorts: QuickPickItem[] = [];
-
-    // Add terminal ports first (they have more context)
-    if (terminalPorts && terminalPorts.length > 0) {
-      allPorts.push(...terminalPorts);
-    }
-
-    // Add process ports if they're not already in the list
-    if (processPorts && processPorts.length > 0) {
-      for (const processPort of processPorts) {
-        // Check if this port is already in our list
-        if (!allPorts.some((item) => item.port === processPort.port)) {
-          allPorts.push(processPort);
-        }
+    // Check active terminals first
+    if (vscode.window.terminals.length > 0) {
+      const terminalPortInfo = await checkTerminalsForPort();
+      if (terminalPortInfo) {
+        return terminalPortInfo;
       }
     }
 
-    return allPorts.length > 0 ? allPorts : undefined;
+    // Check active tasks
+    const taskPortInfo = await checkTasksForPort();
+    if (taskPortInfo) {
+      return taskPortInfo;
+    }
+
+    return undefined;
   } catch (error) {
-    console.error("Error detecting project ports:", error);
+    console.error("Active project port detection error:", error);
     return undefined;
   }
 }
 
-// Detect ports from terminal output
-async function detectTerminalPorts(): Promise<QuickPickItem[]> {
-  const terminalPorts: QuickPickItem[] = [];
+async function checkTerminalsForPort(): Promise<string | undefined> {
+  const activeTerminal = vscode.window.activeTerminal;
 
-  // We can't directly access terminal output with VSCode API
-  // But we can check terminal names and make educated guesses
-  if (!vscode.window.terminals || vscode.window.terminals.length === 0) {
-    return terminalPorts;
+  if (!activeTerminal) {
+    return undefined;
   }
 
-  // Inspect each terminal
-  for (const terminal of vscode.window.terminals) {
-    const terminalName = terminal.name.toLowerCase();
+  try {
+    // Unfortunately we can't directly read terminal output with the current VSCode API
+    // However, we can check if any common development servers are running by the terminal name
+    const terminalName = activeTerminal.name.toLowerCase();
 
-    // Look for common server running messages in terminal name
-    // For example, many npm terminals show "npm start" or project name
+    // Common dev server patterns in terminal names
+    const devServerPatterns = [
+      { pattern: /dev\s*server/i, commonPort: "3000" },
+      { pattern: /next/i, commonPort: "3000" },
+      { pattern: /vite/i, commonPort: "5173" },
+      { pattern: /react/i, commonPort: "3000" },
+      { pattern: /angular/i, commonPort: "4200" },
+      { pattern: /vue/i, commonPort: "8080" },
+      { pattern: /webpack/i, commonPort: "8080" },
+      { pattern: /serve/i, commonPort: "5000" },
+    ];
 
-    // Method 1: Check for direct port numbers in terminal name
-    const portMatches = terminalName.match(/(?:port|:)[ :]*(\d{4})/i);
-    if (portMatches && portMatches[1]) {
-      terminalPorts.push({
-        label: `Port ${portMatches[1]}`,
-        description: `From terminal: ${terminal.name}`,
-        detail: "Port explicitly mentioned in terminal",
-        port: portMatches[1],
-      });
-      continue;
-    }
+    for (const { pattern, commonPort } of devServerPatterns) {
+      if (pattern.test(terminalName)) {
+        const confirmUse = await vscode.window.showQuickPick(["Yes", "No"], {
+          placeHolder: `Detected possible dev server in terminal "${activeTerminal.name}". Use port ${commonPort}?`,
+        });
 
-    // Method 2: If terminal appears to be a dev server, prompt with pid
-    if (terminal.processId) {
-      const pid = await terminal.processId;
-
-      // If terminal seems to be running a dev server
-      if (
-        terminalName.includes("npm") ||
-        terminalName.includes("yarn") ||
-        terminalName.includes("start") ||
-        terminalName.includes("dev") ||
-        terminalName.includes("serve") ||
-        terminalName.includes("vite") ||
-        terminalName.includes("react") ||
-        terminalName.includes("next")
-      ) {
-        // We'll handle this by checking actual processes below
-        // We just take note of the PIDs to correlate them later
+        if (confirmUse === "Yes") {
+          return commonPort;
+        }
       }
     }
-  }
 
-  return terminalPorts;
+    return undefined;
+  } catch (error) {
+    console.error("Terminal check error:", error);
+    return undefined;
+  }
 }
 
-// Detect ports from actual running processes
-async function detectRunningPortsFromProcesses(): Promise<QuickPickItem[]> {
+async function checkTasksForPort(): Promise<string | undefined> {
   try {
-    // This will find all processes bound to ports
-    const processes: Process[] = await find("port");
+    const tasks = await vscode.tasks.fetchTasks();
+    const runningTasks = tasks.filter(
+      (task) =>
+        task.execution !== undefined &&
+        (task.name.toLowerCase().includes("serve") ||
+          task.name.toLowerCase().includes("dev") ||
+          task.name.toLowerCase().includes("start") ||
+          task.name.toLowerCase().includes("run"))
+    );
 
-    if (!processes || processes.length === 0) {
-      return [];
+    if (runningTasks.length === 0) {
+      return undefined;
     }
+
+    // Extract task details for identifying common development servers
+    const taskItems: QuickPickItem[] = runningTasks.map((task) => {
+      let port = "3000"; // Default fallback
+
+      // Try to determine port from task name/source
+      if (task.name.includes("angular") || task.source === "ng") {
+        port = "4200";
+      } else if (task.name.includes("vue")) {
+        port = "8080";
+      } else if (task.name.includes("vite")) {
+        port = "5173";
+      }
+
+      return {
+        label: `Task: ${task.name}`,
+        description: `Likely on port ${port}`,
+        detail: `Source: ${task.source}`,
+        port: port,
+      };
+    });
+
+    if (taskItems.length === 1) {
+      // If only one task, ask for confirmation
+      const confirmUse = await vscode.window.showQuickPick(["Yes", "No"], {
+        placeHolder: `Use ${taskItems[0].port} from task "${taskItems[0].label}"?`,
+      });
+
+      return confirmUse === "Yes" ? taskItems[0].port : undefined;
+    } else {
+      // If multiple tasks, let user choose
+      const selection = await vscode.window.showQuickPick(taskItems, {
+        placeHolder: "Select the port from a running task",
+      });
+
+      return selection?.port;
+    }
+  } catch (error) {
+    console.error("Task check error:", error);
+    return undefined;
+  }
+}
+
+async function findRunningPort(): Promise<string | undefined> {
+  try {
+    // Expanded port range to include more common development ports
+    const processes: Process[] = await find("port", /[1-9][0-9]{3}/);
 
     console.log("Found processes:", processes); // Debug log
 
-    // Filter to likely development servers
-    // We're looking for actual web servers, not just any process
-    const devProcesses = processes.filter((p) => {
-      const name = p.name.toLowerCase();
-      const port = p.port;
-
-      // Filter out very low ports (usually system services)
-      if (port < 1024) {
-        return false;
-      }
-
-      // Include common dev server processes
-      return (
-        name.includes("node") ||
-        name.includes("npm") ||
-        name.includes("yarn") ||
-        name.includes("python") ||
-        name.includes("php") ||
-        name.includes("ruby") ||
-        name.includes("java") ||
-        name.includes("http") ||
-        // Also include processes on typical dev ports
-        (port >= 3000 && port <= 3999) ||
-        (port >= 8000 && port <= 8999) ||
-        (port >= 4200 && port <= 4299) ||
-        (port >= 5000 && port <= 5999) ||
-        port === 1234 || // Parcel
-        port === 5173 // Vite
+    if (!processes || processes.length === 0) {
+      vscode.window.showInformationMessage(
+        "No active development ports found. Please enter port manually."
       );
+      return undefined;
+    }
+
+    // Filter and sort the processes to prioritize common development servers
+    const filteredProcesses = processes
+      .filter((p) => {
+        const name = p.name.toLowerCase();
+        return (
+          name.includes("node") ||
+          name.includes("npm") ||
+          name.includes("python") ||
+          name.includes("php") ||
+          name.includes("java") ||
+          name.includes("ruby") ||
+          p.port === 3000 || // React
+          p.port === 8080 || // Various
+          p.port === 4200 || // Angular
+          p.port === 5173 || // Vite
+          p.port === 5000 // Flask
+        );
+      })
+      .sort((a, b) => {
+        // Sort by priority (common development ports first)
+        const getPriority = (port: number) => {
+          switch (port) {
+            case 3000:
+              return 1; // React
+            case 8080:
+              return 2; // Various
+            case 4200:
+              return 3; // Angular
+            case 5173:
+              return 4; // Vite
+            case 5000:
+              return 5; // Flask
+            default:
+              return 99;
+          }
+        };
+        return getPriority(a.port) - getPriority(b.port);
+      });
+
+    const items: QuickPickItem[] = filteredProcesses.map((p: Process) => ({
+      label: `Port ${p.port}`,
+      description: `${p.name} (PID: ${p.pid})`,
+      port: p.port.toString(),
+    }));
+
+    const selection = await vscode.window.showQuickPick(items, {
+      placeHolder:
+        "Select a running server port or press ESC to enter manually",
     });
 
-    // Group processes by port to detect what's running on each port
-    const portGroups = new Map<number, Process[]>();
-
-    for (const process of devProcesses) {
-      if (!portGroups.has(process.port)) {
-        portGroups.set(process.port, []);
-      }
-      portGroups.get(process.port)?.push(process);
-    }
-
-    // Convert to QuickPick items with context
-    const items: QuickPickItem[] = [];
-
-    for (const [port, processes] of portGroups.entries()) {
-      // Try to detect what's running on this port
-      let projectType = "Unknown";
-      let projectName = "";
-
-      // Sort processes to get most relevant ones first
-      // (node processes are usually more informative than npm)
-      const sortedProcesses = [...processes].sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-
-        // node processes get priority
-        if (aName.includes("node") && !bName.includes("node")) {
-          return -1;
-        }
-        if (!aName.includes("node") && bName.includes("node")) {
-          return 1;
-        }
-
-        return 0;
-      });
-
-      // Look for clues about what type of server is running
-      for (const process of sortedProcesses) {
-        const processName = process.name.toLowerCase();
-
-        // Check for framework-specific clues in the command
-        if (processName.includes("react") || processName.includes("cra")) {
-          projectType = "React";
-        } else if (processName.includes("next")) {
-          projectType = "Next.js";
-        } else if (processName.includes("vue")) {
-          projectType = "Vue";
-        } else if (processName.includes("angular")) {
-          projectType = "Angular";
-        } else if (processName.includes("vite")) {
-          projectType = "Vite";
-        } else if (processName.includes("express")) {
-          projectType = "Express";
-        } else if (processName.includes("webpack")) {
-          projectType = "Webpack";
-        }
-
-        // Try to extract project name from the command
-        // Usually it's in the path to the project
-        const nameParts = processName.split("/");
-        if (nameParts.length > 1) {
-          // The directory name is often the project name
-          for (let i = nameParts.length - 2; i >= 0; i--) {
-            if (nameParts[i] && !nameParts[i].includes("node_modules")) {
-              projectName = nameParts[i];
-              break;
-            }
-          }
-        }
-
-        // If we found good info, break the loop
-        if (projectType !== "Unknown" && projectName) {
-          break;
-        }
-      }
-
-      // Create the QuickPick item
-      items.push({
-        label: `Port ${port}`,
-        description:
-          projectType !== "Unknown"
-            ? `${projectType}${projectName ? ` (${projectName})` : ""}`
-            : `PID: ${sortedProcesses[0].pid}`,
-        detail: `${sortedProcesses.length} process${
-          sortedProcesses.length > 1 ? "es" : ""
-        } running on this port`,
-        port: port.toString(),
-      });
-    }
-
-    return items;
+    return selection?.port;
   } catch (error) {
-    console.error("Error detecting ports from processes:", error);
-    return [];
+    console.error("Port detection error:", error); // Debug log
+    vscode.window.showErrorMessage(`Failed to detect ports: ${error}`);
+    return undefined;
   }
 }
 
