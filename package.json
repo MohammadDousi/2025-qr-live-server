@@ -1,10 +1,10 @@
 {
   "name": "qr-live-server",
   "displayName": "Qr Live Server",
-  "icon": "icon.png", 
+  "icon": "icon.png",
   "publisher": "mohammad-dousi",
   "description": "Scan a QR Code to open your live server up in your mobile browser.",
-  "version": "0.0.45",
+  "version": "0.0.48",
   "repository": {
     "type": "git",
     "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
@@ -18,6 +18,9 @@
   "main": "./dist/extension.js",
   "activationEvents": [
     "*"
+  ],
+  "enabledApiProposals": [
+    "portsAttributes"
   ],
   "contributes": {
     "commands": [
