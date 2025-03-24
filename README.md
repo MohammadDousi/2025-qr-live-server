@@ -36,9 +36,12 @@ You can install this extension through the VS Code Marketplace:
 
 ## Release Notes
 
+### 0.0.46
+
+- Improved reliability of port scanning and detection
+
 ### 0.0.45
 
-Current release:
 - Automatic port detection for common frameworks
 - Terminal and task-based port detection
 
