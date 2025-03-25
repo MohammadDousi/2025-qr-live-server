@@ -8,7 +8,7 @@ const isWindows = process.platform === "win32";
 interface QuickPickItem extends vscode.QuickPickItem {
   label: string;
   description: string;
-  detail?: string;
+  // detail?: string;
   port: string;
 }
 interface ProcessInfo {
@@ -99,12 +99,21 @@ export async function getPort(): Promise<string | undefined> {
 
     // Create QuickPickItems from process information
     const QuickItem: QuickPickItem[] = processes.map((proc) => {
-      return {
-        label: `Port: ${proc.port}`,
-        description: `PID: ${proc.pid} | Program: ${proc.program}`,
-        detail: `Address: ${proc.address} | Protocol: ${proc.protocol}`,
+
+     return {
+        label: `App: ${proc.program}`,
+        description: `| Port: ${proc.port}`,
         port: proc.port.toString(),
       };
+
+      // return {
+      //   label: `Port: ${proc.port}`,
+      //   description: `PID: ${proc.pid} | Program: ${proc.program}`,
+      //   detail: `Address: ${proc.address} | Protocol: ${proc.protocol}`,
+      //   port: proc.port.toString(),
+      // };
+
+      
     });
     if (QuickItem.length === 1) {
       // If only one task, ask for confirmation
