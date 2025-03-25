@@ -1,7 +1,6 @@
 import * as cp from "child_process";
 import * as utils from "util";
 import vscode from "vscode";
-import * as path from "path";
 
 const isWindows = process.platform === "win32";
 
@@ -61,7 +60,7 @@ export async function getPort(): Promise<string | undefined> {
         appName.push(appNameInfo as AppNameTerminal);
       }
     }
-    vscode.window.showErrorMessage(`processes2: ${JSON.stringify(appName[0])}`);
+    // vscode.window.showErrorMessage(`processes2: ${JSON.stringify(appName[0])}`);
 
     // Parse output into ProcessInfo objects
     const processes: ProcessInfo[] = await lines
@@ -86,7 +85,7 @@ export async function getPort(): Promise<string | undefined> {
       .filter((proc) => !isNaN(proc.port) && proc.port > 0); // Filter out invalid ports
     // .filter((proc) => proc.state === "LISTEN");
 
-    vscode.window.showErrorMessage("ProcessInfo => " + processes);
+    // vscode.window.showErrorMessage("ProcessInfo => " + processes);
 
     if (processes.length === 0) {
       vscode.window.showErrorMessage("No active listening ports found");
