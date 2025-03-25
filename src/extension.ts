@@ -19,24 +19,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
-// declare module "vscode" {
-//   export namespace workspace {
-//     export const ports: {
-//       forwarded: ReadonlyArray<{
-//         localPort: number;
-//         remotePort: number;
-//         name?: string;
-//         processId?: number;
-//       }>;
-//       onDidAddPort: vscode.Event<any>;
-//       onDidRemovePort: vscode.Event<any>;
-//       onDidChangePort: vscode.Event<any>;
-//       forward(port: number, options?: any): Thenable<any>;
-//       close(port: number): Thenable<void>;
-//     };
-//   }
-// }
-
 /// generate qr code
 async function handleQRGeneration() {
   const ipAddress = await getLocalIpAddress();

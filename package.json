@@ -4,13 +4,13 @@
   "icon": "icon.png",
   "publisher": "mohammad-dousi",
   "description": "Scan a QR Code to open your live server up in your mobile browser.",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "repository": {
     "type": "git",
     "url": "https://github.com/MohammadDousi/ipQrGenerator.git"
   },
   "engines": {
-    "vscode": "^1.98.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
@@ -46,7 +46,7 @@
     "debug": "npm run compile && code --extensionDevelopmentPath=$(pwd)"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
+- Enhanced version detection and handling    "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "^1.98.0",
     "@typescript-eslint/eslint-plugin": "^8.25.0",

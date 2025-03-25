@@ -43,6 +43,9 @@ Scan a QR Code to open your live server up in your mobile browser.
 
 ## Release Notes
 
+### 0.0.51
+- Fixed compatibility issues with VS Code versions
+
 ### 0.0.49
 - Improved port detection algorithm
 - Added support for more development frameworks
