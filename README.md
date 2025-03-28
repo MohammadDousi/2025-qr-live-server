@@ -43,6 +43,13 @@ Scan a QR Code to open your live server up in your mobile browser.
 
 ## Release Notes
 
+### 0.0.52
+- Added project name detection for running servers
+- Improved process information display
+- Enhanced terminal command parsing
+- Better error handling for port detection
+- Fixed MacOS port scanning issues
+
 ### 0.0.51
 - Fixed compatibility issues with VS Code versions
 
