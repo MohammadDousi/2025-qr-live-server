@@ -2,6 +2,10 @@
 
 Scan a QR Code to open your live server up in your mobile browser.
 
+### 🚀 Available on VS Code Marketplace
+
+Install the extension directly from the [Visual Studio Code Marketplace]([https://marketplace.visualstudio.com/items?itemName=YOUR_ID.extension-name](https://marketplace.visualstudio.com/items?itemName=Mohammad-dousi.qr-live-server)) and boost your workflow!
+
 ## Features
 
 - 🔍 Smart Port Detection
